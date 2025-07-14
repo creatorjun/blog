@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .database import engine
 from . import models
-from .api import router_posts
+from .api.api_router import api_router
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)
@@ -12,8 +12,7 @@ app = FastAPI(
     version="0.0.1",
 )
 
-# '/posts' 경로로 들어오는 모든 요청을 router_posts.router로 전달
-app.include_router(router_posts.router, prefix="/posts", tags=["posts"])
+app.include_router(api_router)
 
 @app.get("/")
 def read_root():
