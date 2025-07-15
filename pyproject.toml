@@ -1,0 +1,3 @@
+[tool.ruff.lint.per-file-ignores]
+# 모든 __init__.py 파일에서 F401(사용하지 않는 import) 오류를 무시합니다.
+"__init__.py" = ["F401"]

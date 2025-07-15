@@ -1,28 +1,51 @@
-import os
-from dotenv import load_dotenv
+# app/core/config.py
 
-# .env 파일에서 환경 변수 로드
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Google Gemini API
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+class Settings(BaseSettings):
+    """
+    애플리케이션 설정을 관리하는 클래스입니다.
+    .env 파일 또는 환경 변수에서 설정을 로드하며, 정의되지 않은 변수는 허용하지 않습니다.
+    """
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-# 네이버 로그인 API 정보
-NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
-NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-NAVER_AUTH_URL = "https://nid.naver.com/oauth2.0/authorize"
-NAVER_TOKEN_URL = "https://nid.naver.com/oauth2.0/token"
-NAVER_CALLBACK_URL = "http://localhost:8000/auth/naver/callback"
+    # --- 기존 설정 ---
+    # Google Gemini API
+    GOOGLE_API_KEY: str
 
-# 네이버 데이터랩 API 정보
-NAVER_DATALAB_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
-NAVER_DATALAB_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+    # 네이버 공통 정보
+    NAVER_CLIENT_ID: str
+    NAVER_CLIENT_SECRET: str
 
-# JWT
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1일
+    # 네이버 로그인 API
+    NAVER_AUTH_URL: str = "https://nid.naver.com/oauth2.0/authorize"
+    NAVER_TOKEN_URL: str = "https://nid.naver.com/oauth2.0/token"
+    NAVER_PROFILE_URL: str = "https://openapi.naver.com/v1/nid/me"
+    NAVER_CALLBACK_URL: str = "http://localhost:8000/auth/naver/callback"
 
-# Refresh JWT
-REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
-REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 14  # 14일
+    # 네이버 데이터랩 API
+    NAVER_DATALAB_URL: str = "https://openapi.naver.com/v1/datalab/search"
+
+    # JWT
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1일
+
+    # Refresh JWT
+    REFRESH_SECRET_KEY: str
+    # .env 파일에 정의된 변수명(REFRESH_TOKEN_EXPIRE_DAYS)과 일치시킵니다.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # Database
+    DATABASE_URL: str
+
+    # --- .env 파일에 있지만 누락되었던 변수들 추가 ---
+    PEXELS_API_KEY: str
+    UNSPLASH_ACCESS_KEY: str
+    EMAIL_SENDER_ADDRESS: str
+    EMAIL_SENDER_PASSWORD: str
+    EMAIL_RECIPIENT_ADDRESS: str
+
+
+# 설정 객체 인스턴스 생성
+settings = Settings()
