@@ -1,20 +1,15 @@
-# app/services/auth_service.py (신규 파일)
-
 from datetime import timedelta
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from .. import crud, schemas
 from ..core import security
 from ..core.config import settings
+from ..core.exceptions import NaverAuthError, UserNotFoundError
 from .naver_service import NaverAPI
 
+
 async def handle_naver_login(
-    *,
-    code: str,
-    state: str,
-    db: Session,
-    naver_api: NaverAPI
+    *, code: str, state: str, db: Session, naver_api: NaverAPI
 ) -> schemas.Token:
     """
     네이버 로그인 콜백을 처리하고, 사용자를 생성 또는 조회한 후
@@ -27,11 +22,13 @@ async def handle_naver_login(
 
         naver_id = profile_info.get("id")
         if not naver_id:
-            raise HTTPException(status_code=400, detail="네이버 사용자 ID를 가져올 수 없습니다.")
+            # HTTPException 대신 커스텀 예외를 발생시킵니다.
+            raise NaverAuthError("네이버 사용자 ID를 가져올 수 없습니다.")
         name = profile_info.get("name")
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"네이버 인증 실패: {str(e)}")
+        # 더 구체적인 커스텀 예외를 사용합니다.
+        raise NaverAuthError(f"네이버 인증 실패: {str(e)}")
 
     # 2. DB에서 사용자 조회 또는 생성
     user = crud.crud_user.get_user_by_naver_id(db, naver_id=naver_id)
@@ -48,8 +45,10 @@ async def handle_naver_login(
 
     return schemas.Token(
         access_token=access_token,
-        refresh_token=refresh_token
+        refresh_token=refresh_token,
+        token_type="bearer",
     )
+
 
 def refresh_user_token(*, refresh_token: str, db: Session) -> schemas.Token:
     """
@@ -58,7 +57,8 @@ def refresh_user_token(*, refresh_token: str, db: Session) -> schemas.Token:
     user_uuid = security.verify_refresh_token(refresh_token)
     user = crud.crud_user.get_user_by_uuid(db, user_uuid=user_uuid)
     if not user:
-        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+        # HTTPException 대신 커스텀 예외를 발생시킵니다.
+        raise UserNotFoundError()
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     new_access_token = security.create_access_token(
@@ -68,5 +68,6 @@ def refresh_user_token(*, refresh_token: str, db: Session) -> schemas.Token:
 
     return schemas.Token(
         access_token=new_access_token,
-        refresh_token=new_refresh_token
+        refresh_token=new_refresh_token,
+        token_type="bearer",
     )

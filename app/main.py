@@ -1,5 +1,3 @@
-# app/main.py
-
 import httpx
 from contextlib import asynccontextmanager
 
@@ -8,7 +6,8 @@ from fastapi import FastAPI
 from .database import engine
 from . import models
 from .api.api_router import api_router
-# from .core.config import settings # <- 이 줄을 삭제하거나 주석 처리하세요.
+from .core.exceptions import CustomException
+from .core.exception_handlers import custom_exception_handler, unhandled_exception_handler
 
 
 @asynccontextmanager
@@ -24,7 +23,14 @@ async def lifespan(app: FastAPI):
 # 프로덕션 환경에서는 Alembic 같은 마이그레이션 도구 사용을 권장합니다.
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    # 예외 핸들러를 여기에 등록합니다.
+    exception_handlers={
+        CustomException: custom_exception_handler,
+        Exception: unhandled_exception_handler,
+    },
+)
 
 app.include_router(api_router, prefix="/api")
 

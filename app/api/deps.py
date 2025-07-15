@@ -1,6 +1,4 @@
-# app/api/deps.py
-
-from fastapi import Depends, HTTPException, status, Request # Request를 다시 추가합니다.
+from fastapi import Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from jose import JWTError
@@ -9,6 +7,7 @@ from ..database import get_db, SessionLocal
 from .. import crud, models
 from ..core import security
 from ..services.naver_service import NaverAPI
+from ..core.exceptions import InvalidTokenError
 
 oauth2_scheme = HTTPBearer(
     scheme_name="JWT Access Token",
@@ -19,21 +18,20 @@ async def get_current_user(
     auth: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> models.User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="자격 증명을 확인할 수 없습니다.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    """
+    요청 헤더의 Bearer 토큰을 검증하고 현재 사용자를 반환합니다.
+    """
     try:
         user_uuid = security.verify_access_token(token=auth.credentials)
         if user_uuid is None:
-            raise credentials_exception
+            raise InvalidTokenError()
     except JWTError:
-        raise credentials_exception
+        raise InvalidTokenError()
 
     user = crud.crud_user.get_user_by_uuid(db, user_uuid=user_uuid)
     if user is None:
-        raise credentials_exception
+        # DB에 해당 uuid의 사용자가 없는 경우에도 토큰이 유효하지 않은 것으로 처리
+        raise InvalidTokenError()
     return user
 
 
